@@ -2,10 +2,11 @@ from patterns import (
     Parameter,
     State,
     Table,
-    Connection,
-)
+    Connection
 import pinecone
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=openai_conn["api_key"])
 
 
 discord_messages_filtered = Table("discord_messages_filtered", "r")
@@ -13,7 +14,6 @@ discord_messages_filtered = Table("discord_messages_filtered", "r")
 
 api_key = Parameter("pinecone_api_key")
 openai_conn = Parameter("openai_api_key", type=Connection("openai"))
-openai.api_key = openai_conn["api_key"]
 
 
 docs = Table("docs")
@@ -25,11 +25,9 @@ index = pinecone.Index(pc_index_name)
 
 
 def query(text):
-    response = openai.Embedding.create(
-    input=text,
-    model="text-embedding-ada-002"
-    )
-    embed = response['data'][0]['embedding']
+    response = client.embeddings.create(input=text,
+    model="text-embedding-ada-002")
+    embed = response.data[0].embedding
     resp = index.query(
         vector=embed,
         top_k=3,

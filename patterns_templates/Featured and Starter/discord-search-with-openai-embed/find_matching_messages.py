@@ -1,4 +1,6 @@
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=connection.get("api_key"))
 from numpy import dot
 from numpy.linalg import norm
 from patterns import Parameter, State, Table, Connection
@@ -19,7 +21,6 @@ n = Parameter("n", type=int, default=5)
 model = Parameter("model", type=str, default="text-embedding-ada-002")
 
 connection = Parameter("connection", type=Connection("openai"))
-openai.api_key = connection.get("api_key")
 
 record_sets = {
     'discord': discord_embeddings, 
@@ -32,7 +33,7 @@ def cosine_similarity(a, b):
 
 for search_text_record in search_text_stream.consume_records():
     search_text = search_text_record['search_text']
-    search_embedding = openai.Embedding.create(input=search_text, engine=model)['data'][0]['embedding']
+    search_embedding = client.embeddings.create(input=search_text, engine=model)['data'][0]['embedding']
 
     updated_records = []
     for record_type, record_set in record_sets.items():

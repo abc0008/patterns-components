@@ -2,9 +2,10 @@ from patterns import (
     Parameter,
     State,
     Table,
-    Connection,
-)
-import openai
+    Connection
+from openai import OpenAI
+
+client = OpenAI(api_key=openai_conn["api_key"])
 from scipy import spatial
 import tiktoken
 import pinecone
@@ -18,7 +19,6 @@ responses = Table("responses", "w")
 
 
 openai_conn = Parameter("openai_api_key", type=Connection("openai"))
-openai.api_key = openai_conn["api_key"]
 
 #completion_model = "chat-davinci-003-alpha"
 completion_model = "text-davinci-003"
@@ -48,10 +48,8 @@ def get_embeddings(docs):
         batch = docs[i*n:(i+1)*n]
         if not batch:
             break
-        response = openai.Embedding.create(
-            model="text-embedding-ada-002",
-            input=batch,
-        )
+        response = client.embeddings.create(model="text-embedding-ada-002",
+        input=batch)
         vectors.extend([data.embedding for data in response.data])
     return vectors
 
@@ -70,7 +68,7 @@ def summarize_matches_with_comments(msg, max_tokens=3400):
     sorted_cmnts = sort_similar_comments(comments, msg["question_embedding"]["embedding"])
     text, tokens = add_text_till_limit((c["post_text"][:max_comment_chars] for c in sorted_cmnts), max_tokens, "\n\n")
     return text
- 
+
 
 def answer_question(msg):
     text = summarize_matches_with_comments(msg)
@@ -85,8 +83,8 @@ Question: "{question}"
 Answer: """
 
     print(prompt)
-    
-    resp = openai.Completion.create(prompt=prompt, engine=completion_model, max_tokens=500, temperature=.8)
+
+    resp = client.completions.create(prompt=prompt, engine=completion_model, max_tokens=500, temperature=.8)
     print(resp)
     return resp
 
@@ -104,6 +102,6 @@ Answer: {completion}
 
 for msg in discord_hits.as_stream():
     resp = answer_question(msg)
-    msg["response"] = format_response(resp["choices"][0]["text"], msg)
+    msg.response = format_response(resp.choices[0].text, msg)
     responses.append(msg)
 

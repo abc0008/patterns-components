@@ -2,17 +2,20 @@ from patterns import (
     Parameter,
     State,
     Table,
-    Connection,
-)
+    Connection
 import pinecone
-import openai
-  
+from openai import OpenAI
+
+client = OpenAI(api_key=openai_conn["api_key"])
+
 
 import pickle
 import time
 from itertools import islice
 
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=openai_conn["api_key"])
 from openai.error import RateLimitError
 from patterns import Parameter, Table, State
 
@@ -21,7 +24,6 @@ state = State()
 
 api_key = Parameter("pinecone_api_key")
 openai_conn = Parameter("openai_api_key", type=Connection("openai"))
-openai.api_key = openai_conn["api_key"]
 
 
 docs = Table("docs")
@@ -41,8 +43,8 @@ index = pinecone.Index(pc_index_name)
 
 
 def get_embedding(input_text: str) -> list[float]:
-    result = openai.Embedding.create(model="text-embedding-ada-002", input=input_text)
-    return result["data"][0]["embedding"]
+    result = client.embeddings.create(model="text-embedding-ada-002", input=input_text)
+    return result.data[0].embedding
 
 
 inputs_stream = docs.as_stream()
@@ -55,10 +57,8 @@ while state.should_continue():
         break
     try:
         try:
-            response = openai.Embedding.create(
-                model="text-embedding-ada-002",
-                input=[r["doc"] for r in records],
-            )
+            response = client.embeddings.create(model="text-embedding-ada-002",
+            input=[r["doc"] for r in records])
         except RateLimitError as e:
             inputs_stream.rollback()
             retry_count += 1
